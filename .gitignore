@@ -1,0 +1,4 @@
+slack.env
+src/configfile.ini
+.python-version
+__pycache__

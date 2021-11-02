@@ -1,5 +1,8 @@
 # apc_reboot
 Powercycling APC Outlets using SNMP write requests using aiosnmp, and Slack Bolt API for an interactive Slack Bot
+## Setting up the Slack Bot
+I followed the [guide here](https://api.slack.com/start/building/bolt-python) to setup a basic Bolt app.
+
 ## Using this script
 ### Using Docker
 0) Update your APC PDU Outlet labels for all of your outlets with the IPv4 addresses of the machines plugged in. Add an SNMPv1 community string with Write Access.
@@ -44,3 +47,6 @@ rack1back = '(ip address for your rack1back pdu)'
 [IP Ranges]
 range1 = '(ip address range in the following format: 1.1.1.1:254')
 ```
+## To Do
+* Change Access to SNMPv3, perhaps need to help aiosnmp support SNMPv3
+* Add a way to check if all IPs in the Range are present among the PDUs and alert in the Slack Channel if they are not

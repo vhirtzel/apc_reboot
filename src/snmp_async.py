@@ -48,17 +48,38 @@ def getCommunity(config):
     return community
 
 
-async def loop_over_ips(ip, community, oids, pdus, hosts: list) -> None:
-    tasks = []  # you should move tasks below first for loop
+async def loop_over_ips(ip: str, community: str, oids: list[str], pdus: asyncio.Queue, hosts: list[str]) -> None:
+    """Function to generate the tasks to be run asynchronously
+
+    First it creates a task for getOutlets for each PDU to find the machine,
+    then it adds a task to reboot the machine.
+
+    Args:
+        ip (str): IP address of Machine to be Rebooted
+        community (str): SNMPv1 community string with write access
+        oids (str): OIDs representing each outlet of the PDU to check
+        pdus (asyncio.Queue): asyncio Queue Object that will hold the IP and OID 
+        representing the PDU/outlet combination that the Machine represented by ip is plugged into
+        hosts (list): List of PDU IPs gathered by getHosts()
+    """
+    tasks = [] 
     for host in hosts:
         tasks.append(get_outlets(community, oids, pdus, host))
     tasks.append(reboot_machine(ip, community, pdus))
     await asyncio.gather(
         *tasks
-    )  # or move gather outside first loop, it caused RuntimeError
+    )
 
 
-async def get_outlets(community, oids, pdus, ip):
+async def get_outlets(ip: str, community: str, oids: list[str], pdus: asyncio.Queue) -> None:
+    """With the
+
+    Args:
+        ip (str): IP address of Machine to be Rebooted
+        community (str): SNMPv1 community string with write access
+        oids (list[str]): List of OIDs representing each outlet of the PDU to check
+        pdus (asyncio.Queue): asyncio Queue Object that will hold the IP and OID
+    """
     async with aiosnmp.Snmp(
         host=ip,
         port=161,
@@ -85,7 +106,14 @@ async def get_outlets(community, oids, pdus, ip):
             pass
 
 
-async def reboot_machine(ip, community, pdus):
+async def reboot_machine(ip: str, community: str, pdus: asyncio.Queue) -> None:
+    """[summary]
+
+    Args:
+        ip (str): [description]
+        community (str): [description]
+        pdus (asyncio.Queue): [description]
+    """
     processed = False
     while processed is False:
         item = await pdus.get()
@@ -100,7 +128,7 @@ async def reboot_machine(ip, community, pdus):
                 retries=1,
                 max_repetitions=10,
             ) as snmp:
-                # get
+                # set
                 try:
                     await snmp.set([(item[2], 2)])
                 except aiosnmp.exceptions.SnmpErrorGenErr:

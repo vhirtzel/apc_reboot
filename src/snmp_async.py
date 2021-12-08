@@ -13,19 +13,22 @@ def main(ip=sys.argv[1]):
     for i in range(1, 25):
         oids.append(f".1.3.6.1.4.1.318.1.1.4.4.2.1.4.{i}")
     pdus = asyncio.Queue()
-    config = parseConfig()
+    config = configparser.ConfigParser()
+    config.read("configfile.ini")
     hosts = getHosts(config)
     community = getCommunity(config)
     loop.run_until_complete(loop_over_ips(ip, community, oids, pdus, hosts))
 
 
-def parseConfig():
-    config = configparser.ConfigParser()
-    config.read("configfile.ini")
-    return config
-
-
 def getHosts(config):
+    """Collects the host IPs in a list to be iterated over
+
+    Args:
+        config (list[str]): The list generated from configparser.ConfigParser().read()
+
+    Returns:
+        list[str]: List of IP addresses of PDUs
+    """
     hosts = []
     for key in config["Hosts"]:
         hosts.append(config["Hosts"][key])
@@ -33,20 +36,16 @@ def getHosts(config):
 
 
 def getCommunity(config):
+    """Get the SNMPv1 community string from the config file
+
+    Args:
+        config (list[str]): The list generated from configparser.ConfigParser().read()
+
+    Returns:
+        str: The SNMPv1 community string with Write Access to the PDUs
+    """
     community = config["Credentials"]["community"]
     return community
-
-
-def check_valid_ip(config, entry):
-    entry_lst = entry.split(".")
-    for ip_range in config["IP Ranges"]:
-        range_str = config["IP Ranges"][ip_range]
-        lst = range_str.split(".")
-        if entry_lst[:3] != lst[:3]:
-            continue
-        range_lst = lst[3].split(":")
-        if int(entry_lst[3]) in range(int(range_lst[0]), int(range_lst[1]) + 1):
-            return True
 
 
 async def loop_over_ips(ip, community, oids, pdus, hosts: list) -> None:

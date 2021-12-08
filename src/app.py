@@ -21,10 +21,20 @@ def check_valid_ip(config, entry):
             continue
         range_lst = lst[3].split(":")
         if int(entry_lst[3]) in range(int(range_lst[0]), int(range_lst[1]) + 1):
+            pdu = "apc"
+            return True
+    for ip_range in config["RaritanIPs"]:
+        range_str = config["RaritanIPs"][ip_range]
+        lst = range_str.split(".")
+        if entry_lst[:3] != lst[:3]:
+            continue
+        range_lst = lst[3].split(":")
+        if int(entry_lst[3]) in range(int(range_lst[0]), int(range_lst[1]) + 1):
+            pdu = "raritan"
             return True
 
 
-# Listens to incoming messages that contain "hello"
+# Listens to incoming messages that contain "reboot or Reboot"
 # To learn available listener arguments,
 # visit https://slack.dev/bolt-python/api-docs/slack_bolt/kwargs_injection/args.html
 @app.message(re.compile("(reboot|Reboot).*"))
@@ -32,6 +42,7 @@ def message_hello(message, say):
     # say() sends a message to the channel where the event was triggered
     text_breakdown = message["text"].split()
     reboot_status = False
+    pdu = "none"
     for word in text_breakdown:
         valid_ip = check_valid_ip(config, word)
         if valid_ip is True:
@@ -62,11 +73,15 @@ def message_hello(message, say):
 
 
 @app.action("button_click")
-def action_button_click(body, ack, respond):
+def action_button_click(body, ack, respond, pdu):
     ack()
     print("Button Pressed!")
-    os.system(f"python snmp_async.py {body['actions'][0]['value']}")
-    respond(f"I've rebooted {body['actions'][0]['value']} for you")
+    if pdu = "apc":
+        os.system(f"python snmp_async.py {body['actions'][0]['value']}")
+        respond(f"I've rebooted {body['actions'][0]['value']} for you")
+    if pdu = "raritan":
+        os.system(f"python desktop_reboot.py {body['actions'][0]['value']}")
+        respond(f"I've rebooted {body['actions'][0]['value']} for you")
 
 
 @app.event("message")

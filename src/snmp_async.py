@@ -32,6 +32,7 @@ def getHosts(config):
     hosts = []
     for key in config["Hosts"]:
         hosts.append(config["Hosts"][key])
+    print(hosts)
     return hosts
 
 
@@ -66,12 +67,13 @@ async def loop_over_ips(ip: str, community: str, oids: list[str], pdus: asyncio.
     for host in hosts:
         tasks.append(get_outlets(community, oids, pdus, host))
     tasks.append(reboot_machine(ip, community, pdus))
+    print(tasks)
     await asyncio.gather(
         *tasks
     )
 
 
-async def get_outlets(ip: str, community: str, oids: list[str], pdus: asyncio.Queue) -> None:
+async def get_outlets(community: str, oids: list[str], pdus: asyncio.Queue, ip: str) -> None:
     """With the
 
     Args:

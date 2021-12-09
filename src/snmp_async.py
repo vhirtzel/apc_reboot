@@ -32,7 +32,6 @@ def getHosts(config):
     hosts = []
     for key in config["Hosts"]:
         hosts.append(config["Hosts"][key])
-    print(hosts)
     return hosts
 
 
@@ -67,23 +66,24 @@ async def loop_over_ips(ip: str, community: str, oids: list[str], pdus: asyncio.
     for host in hosts:
         tasks.append(get_outlets(community, oids, pdus, host))
     tasks.append(reboot_machine(ip, community, pdus))
-    print(tasks)
     await asyncio.gather(
         *tasks
     )
 
 
-async def get_outlets(community: str, oids: list[str], pdus: asyncio.Queue, ip: str) -> None:
-    """With the
+async def get_outlets(community: str, oids: list[str], pdus: asyncio.Queue, hosts: str) -> None:
+    """Asyncrononous SNMP Get command that collects the names of outlets, 
+    and arranges then in an asyncio Queue object that the reboot_machine()
+    processes.
 
     Args:
-        ip (str): IP address of Machine to be Rebooted
         community (str): SNMPv1 community string with write access
-        oids (list[str]): List of OIDs representing each outlet of the PDU to check
-        pdus (asyncio.Queue): asyncio Queue Object that will hold the IP and OID
+        oids (list[str]): OIDs representing each outlet of the PDU to check
+        pdus (asyncio.Queue): asyncio Queue Object that will hold the IP and OID 
+        hosts (str): List of PDU IPs gathered by getHosts()
     """
     async with aiosnmp.Snmp(
-        host=ip,
+        host=hosts,
         port=161,
         community=community,
         timeout=5,
@@ -97,7 +97,7 @@ async def get_outlets(community: str, oids: list[str], pdus: asyncio.Queue, ip: 
             for res in results:
                 await pdus.put(
                     (
-                        ip,
+                        hosts,
                         str(res.value)[2 : len(str(res.value)) - 1],
                         f".1.3.6.1.4.1.318.1.1.4.4.2.1.3.{i}",
                     )
@@ -109,12 +109,14 @@ async def get_outlets(community: str, oids: list[str], pdus: asyncio.Queue, ip: 
 
 
 async def reboot_machine(ip: str, community: str, pdus: asyncio.Queue) -> None:
-    """[summary]
+    """Checks the outlet names collected by get_outlets() for the IP
+    of the machine that needs to be rebooted,
+    when it is found it sends the SNMP Set commands to reboot that machine.
 
     Args:
-        ip (str): [description]
-        community (str): [description]
-        pdus (asyncio.Queue): [description]
+        ip (str): IP address of Machine to be Rebooted
+        community (str): SNMPv1 community string with write access
+        pdus (asyncio.Queue): asyncio Queue Object that will hold the IP and OID 
     """
     processed = False
     while processed is False:
